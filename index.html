@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Ad Generator</title>
+<style>
+:root{--bg:#faf8f5;--card:#fff;--text:#1d1b19;--muted:#6b665f;--line:#e2ddd5;--accent:#e8590c;--accent-t:#fff;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#171513;--card:#211e1b;--text:#f1ede7;--muted:#a39d94;--line:#37332e;--accent:#ff8a3d;--accent-t:#1a1008;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.6rem;margin:8px 0 2px}
+.sub{color:var(--muted);margin:0 0 20px}
+.grid{display:grid;grid-template-columns:1fr 1.1fr;gap:16px;align-items:start}
+@media (max-width:780px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 4px}
+label:first-child{margin-top:0}
+.hint{color:var(--muted);font-size:.8rem;margin-top:3px}
+input,textarea,select{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{resize:vertical;min-height:70px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:9px 14px}
+button.primary{background:var(--accent);color:var(--accent-t);border-color:var(--accent);font-weight:700;width:100%;padding:12px;margin-top:16px}
+.ad-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:var(--muted);font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.ad{min-height:210px;line-height:1.55;overflow:hidden;white-space:pre-wrap}
+.pimg{max-width:100%;border-radius:10px;display:none;margin-top:12px}
+.empty{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<h1>Local Ad Generator</h1>
+<p class="sub">Pick a business type, add a few details, and get ads in your format. Hit Generate again for new versions.</p>
+<div class="grid">
+  <div>
+    <div class="card">
+      <label for="biz">Business name</label><input id="biz" placeholder="Sparky’s Welding">
+      <label for="cat">Business type</label><select id="cat"></select>
+      <div id="whatWrap" style="display:none">
+        <label for="what">What do they do? (a few words)</label>
+        <input id="what" placeholder="lawn mowing, bookkeeping, window washing">
+      </div>
+      <div class="row">
+        <div><label for="area">Local area</label><input id="area" value="Logan, IA"></div>
+        <div><label for="person">Type of person (optional)</label><input id="person" placeholder="auto"></div>
+      </div>
+      <div class="row">
+        <div><label for="verb">Action</label>
+          <select id="verb"><option>call</option><option>text</option><option>message</option><option>email</option><option>visit</option></select></div>
+        <div><label for="contact">Phone / contact</label><input id="contact" placeholder="712-242-8574"></div>
+      </div>
+      <div class="row">
+        <div><label for="years">Years of experience</label><input id="years" type="number" min="1" placeholder="optional"></div>
+        <div><label for="season">Season</label>
+          <select id="season"><option value="">None</option><option>this winter</option><option>this spring</option><option>this summer</option><option>this fall</option></select></div>
+      </div>
+      <label for="we">“We…” line (leave blank and it writes one for you)</label>
+      <input id="we" placeholder="We bring the toughest welds to your toughest jobs">
+      <label for="extra">Extra detail (optional, added to the end of the “We…” line)</label>
+      <input id="extra" placeholder="with free estimates and same-day service">
+      <label for="photo">Photo (optional, preview only)</label>
+      <input id="photo" type="file" accept="image/*">
+      <button class="primary" id="go">Generate ads</button>
+    </div>
+  </div>
+  <div id="out"><div class="card empty">Your ads will show up here. You can edit any of them before copying.</div></div>
+</div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const CATS = {
+"Dog grooming":{p:"dog owners",t:"and book an appointment today",
+ q:["Is fur covering your couch?","Is your dog overdue for a bath?","Are mats and tangles taking over your dog’s coat?","Tired of muddy paw prints everywhere?"],
+ d:["Don’t let it pile up","Don’t fight the bath tub{s}","Don’t put it off any longer"],
+ w:["we’ll handle everything your dog needs, so you don’t have to","we leave your pup clean, fluffy, and happy","we treat every dog like family"]},
+"Welding / farm repair":{p:"farmers",t:"for all your farm repair/welding needs",
+ q:["Equipment repairs stacking up?","Is broken equipment slowing you down?","Need a weld you can count on?"],
+ d:["Don’t do it all yourself{s}.","Don’t let a breakdown slow you down{s}.","Don’t wait until it fails"],
+ w:["we bring the toughest welds to your toughest jobs","we come to you with fast, reliable repairs","we keep your equipment running so you can keep working"]},
+"Plumbing":{p:"homeowners",t:"to schedule service today",
+ q:["Is a leaky faucet driving you crazy?","Dealing with a clogged drain?","Is your water heater acting up?"],
+ d:["Don’t ignore that drip","Don’t wait for a small leak to become a big problem","Don’t try to fix it yourself{s}."],
+ w:["we fix it right the first time","we handle everything from small leaks to full repairs","we show up and get the job done"]},
+"Heating & cooling":{p:"homeowners",t:"to schedule a visit today",
+ q:["Is your furnace on its last leg?","Is your house never the right temperature?","Are your energy bills climbing?"],
+ d:["Don’t wait for it to break down","Don’t suffer through another uncomfortable day","Don’t gamble with your heating and cooling"],
+ w:["we keep your home comfortable all year long","we repair, install, and maintain heating and cooling systems","we get your system running right again"]},
+"Lawn care":{p:"homeowners",t:"for a free quote today",
+ q:["Is your lawn getting out of hand?","Tired of spending your weekends mowing?","Is your yard looking rough?"],
+ d:["Don’t give up your weekends","Don’t let the weeds take over","Don’t do it all yourself{s}."],
+ w:["we keep your lawn looking its best","we handle the mowing so you don’t have to","we take care of the yard work, start to finish"]},
+"Auto repair":{p:"drivers",t:"to schedule your appointment today",
+ q:["Is your check engine light on?","Is your car making that noise again?","Is car trouble ruining your week?"],
+ d:["Don’t ignore it","Don’t wait for a small problem to turn into a big bill","Don’t let a breakdown catch you off guard{s}."],
+ w:["we diagnose it fast and fix it right","we keep you safe and on the road","we treat your vehicle like it’s our own"]},
+"Cleaning":{p:"busy homeowners",t:"to book your cleaning today",
+ q:["Is your to-do list getting out of hand?","Too busy to keep up with the cleaning?","Is the mess piling up?"],
+ d:["Don’t spend your weekend scrubbing","Don’t let the mess pile up","Don’t do it all yourself{s}."],
+ w:["we handle the cleaning so you can enjoy your free time","we leave every room spotless","we do the dirty work so you don’t have to"]},
+"Roofing":{p:"homeowners",t:"for a free estimate today",
+ q:["Is your roof showing its age?","Noticed a leak after the last storm?","Worried about roof damage?"],
+ d:["Don’t wait for the next storm","Don’t ignore the warning signs","Don’t climb up there yourself"],
+ w:["we repair and replace roofs built to last","we protect your home from the top down","we do the job right the first time"]},
+"Electrician":{p:"homeowners",t:"to schedule service today",
+ q:["Are your lights flickering?","Is a dead outlet driving you crazy?","Need electrical work done right?"],
+ d:["Don’t mess with wiring yourself","Don’t ignore the warning signs","Don’t take risks with your home’s safety"],
+ w:["we handle repairs, upgrades, and installs safely","we get your power back on track","we do it safely and we do it right"]},
+"Salon / barber":{p:"locals",t:"and book your appointment today",
+ q:["Overdue for a fresh cut?","Is your hair having a bad day?","Need a look you’ll love?"],
+ d:["Don’t put it off any longer","Don’t settle for a bad haircut","Don’t cut it yourself"],
+ w:["we’ll get you looking and feeling your best","we take the time to get it right","we make every visit easy and relaxing"]},
+"Tree service":{p:"property owners",t:"for a free quote today",
+ q:["Is a tree getting too close to your house?","Storm damage in your yard?","Got a dead tree you’re worried about?"],
+ d:["Don’t risk it yourself","Don’t wait for the next storm","Don’t climb up there on your own"],
+ w:["we safely remove, trim, and clean up","we handle the heavy work so you don’t have to","we haul it all away when we’re done"]},
+"Snow removal":{p:"property owners",t:"to sign up today",
+ q:["Dreading another snowy morning?","Tired of shoveling?","Is snow blocking your drive?"],
+ d:["Don’t break your back shoveling","Don’t get stuck in the snow","Don’t brave the cold yourself"],
+ w:["we clear the snow so you don’t have to","we keep your drive and walkways clear all winter","we’re out early so you can get on with your day"]},
+"Pest control":{p:"homeowners",t:"to schedule a visit today",
+ q:["Finding bugs where they don’t belong?","Hearing noises in the walls?","Is a pest problem getting out of hand?"],
+ d:["Don’t put up with it","Don’t wait for it to get worse","Don’t waste money on store-bought fixes"],
+ w:["we get rid of pests and keep them gone","we handle the problem from start to finish","we make your home yours again"]},
+"Restaurant / food":{p:"food lovers",t:"to order today",
+ q:["Too tired to cook tonight?","Craving something good?","Hosting an event and need food?"],
+ d:["Don’t stress over dinner","Don’t settle for another boring meal","Don’t spend all day in the kitchen"],
+ w:["we serve up fresh food made right","we bring great food to your table","we do the cooking so you don’t have to"]},
+"Other (type it in)":{p:"locals",t:"today",
+ q:["Need help with {what}?","Is {what} taking up too much of your time?"],
+ d:["Don’t do it all yourself{s}.","Don’t put it off any longer","Don’t stress over it"],
+ w:["we handle {what}, so you don’t have to","we take care of {what} from start to finish"]}
+};
+Object.keys(CATS).forEach(k => { const o = document.createElement("option"); o.textContent = k; $("cat").append(o); });
+$("cat").onchange = () => $("whatWrap").style.display = $("cat").value.startsWith("Other") ? "block" : "none";
+$("photo").onchange = e => {
+  const f = e.target.files[0]; window._photo = f ? URL.createObjectURL(f) : null;
+  document.querySelectorAll(".pimg").forEach(im => { if (window._photo) { im.src = window._photo; im.style.display = "block"; } else im.style.display = "none"; });
+};
+const grow = ta => { ta.style.height = "auto"; ta.style.height = ta.scrollHeight + 2 + "px"; };
+
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const fix = s => s.replace(/'/g, "\u2019").replace(/[ \t]+([?.!,])/g, "$1").replace(/[ \t]{2,}/g, " ").trim();
+
+function cta(c, tail, verb, contact) {
+  const t = tail ? " " + tail : "";
+  if (verb === "message") return "Message us" + (contact ? " " + contact : "") + t + "!";
+  const v = cap(verb);
+  return v + (contact ? " " + contact : " us") + t + "!";
+}
+function build(c, i, qs, ds, ws) {
+  const biz = $("biz").value.trim() || "[Business]", what = $("what").value.trim() || "the job";
+  const s = $("season").value ? " " + $("season").value : "";
+  const sub = x => x.replace(/\{s\}/g, s).replace(/\{what\}/g, what);
+  const person = ($("person").value.trim() || c.p);
+  const head = ($("area").value + " " + person).trim().toUpperCase() + ": " + sub(qs[i % qs.length]);
+  const dont = sub(ds[i % ds.length]);
+  const instead = "Instead, " + $("verb").value + " " + biz;
+  const typed = $("we").value.trim();
+  let we;
+  if (typed) { we = typed; }
+  else {
+    we = sub(ws[i % ws.length]);
+    const yrs = parseInt($("years").value);
+    we = yrs ? "With " + yrs + "+ years of experience, " + we : cap(we);
+    const extra = $("extra").value.trim();
+    if (extra) we += ", " + extra.replace(/[.!]+$/, "");
+  }
+  const fin = cta(c, c.t, $("verb").value, $("contact").value.trim());
+  return fix([head, dont, instead, we, fin].join("\n\n").replace(/ \n/g, "\n"));
+}
+function make() {
+  const c = CATS[$("cat").value], out = $("out"); window._made = true;
+  out.textContent = "";
+  let qs = shuffle(c.q), ws = shuffle(c.w); const ds = shuffle(c.d);
+  if ($("cat").value.startsWith("Other") && !$("what").value.trim()) {
+    qs = shuffle(["Is your to-do list getting out of hand?","Need a hand?","Too much on your plate?"]);
+    ws = shuffle(["we take care of the work so you don’t have to","we handle it from start to finish","we make it easy, so you can get back to your day"]);
+  }
+  for (let i = 0; i < 3; i++) {
+    const card = document.createElement("div"); card.className = "card";
+    const head = document.createElement("div"); head.className = "ad-head";
+    const t = document.createElement("span"); t.textContent = "Option " + (i + 1);
+    const b = document.createElement("button"); b.textContent = "Copy";
+    const ta = document.createElement("textarea"); ta.className = "ad"; ta.value = build(c, i, qs, ds, ws);
+    b.onclick = async () => { try { await navigator.clipboard.writeText(ta.value); b.textContent = "Copied!"; } catch (e) { ta.select(); b.textContent = "Press Ctrl+C"; } setTimeout(() => b.textContent = "Copy", 1500); };
+    head.append(t, b);
+    const im = document.createElement("img"); im.className = "pimg"; im.alt = "Ad photo";
+    if (window._photo) { im.src = window._photo; im.style.display = "block"; }
+    card.append(head, ta, im); out.append(card);
+    grow(ta); ta.addEventListener("input", () => grow(ta));
+  }
+}
+$("go").onclick = make;
+</script>
+</body>
+</html>
